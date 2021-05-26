@@ -1,0 +1,2 @@
+# by default we also use tensorboard to log results
+tensorboard
