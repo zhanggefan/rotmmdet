@@ -162,16 +162,6 @@ if __name__ == '__main__':
             'optional': parse_requirements('requirements/optional.txt'),
         },
         ext_modules=[
-            make_cuda_ext(
-                name='gwd_utils_ext',
-                module='mmdetrot.ops.gwd_utils',
-                sources=['src/gwd_utils_bind.cpp'],
-                sources_cuda=['src/gwd_utils.cu']),
-            make_cuda_ext(
-                name='mish_cuda_ext',
-                module='mmdetrot.ops.mish_cuda',
-                sources=['src/kernel/mish_cpu.cc', 'src/mish.cc'],
-                sources_cuda=['src/kernel/mish_cuda.cu']),
             *cythonize([
                 Extension(
                     'mmdetrot.ops.eval_utils.match',
