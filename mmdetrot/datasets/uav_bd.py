@@ -117,13 +117,13 @@ class UAVBD(XMLDataset):
             bboxes = np.zeros((0, 5))
             labels = np.zeros((0,))
         else:
-            bboxes = np.array(bboxes, ndmin=2) - 1
+            bboxes = np.array(bboxes, ndmin=2)
             labels = np.array(labels)
         if not bboxes_ignore:
             bboxes_ignore = np.zeros((0, 5))
             labels_ignore = np.zeros((0,))
         else:
-            bboxes_ignore = np.array(bboxes_ignore, ndmin=2) - 1
+            bboxes_ignore = np.array(bboxes_ignore, ndmin=2)
             labels_ignore = np.array(labels_ignore)
         ann = dict(
             bboxes=bboxes.astype(np.float32),
@@ -131,3 +131,27 @@ class UAVBD(XMLDataset):
             bboxes_ignore=bboxes_ignore.astype(np.float32),
             labels_ignore=labels_ignore.astype(np.int64))
         return ann
+
+    def get_cat_ids(self, idx):
+        """Get category ids in XML file by index.
+
+        Args:
+            idx (int): Index of data.
+
+        Returns:
+            list[int]: All categories in the image of specified index.
+        """
+
+        cat_ids = []
+        img_id = self.data_infos[idx]['id']
+        xml_path = osp.join(self.img_prefix, 'labels', f'{img_id}.xml')
+        tree = ET.parse(xml_path)
+        root = tree.getroot()
+        for obj in root.findall('object'):
+            name = obj.find('name').text
+            if name not in self.CLASSES:
+                continue
+            label = self.cat2label[name]
+            cat_ids.append(label)
+
+        return cat_ids

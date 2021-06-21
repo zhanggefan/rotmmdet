@@ -8,7 +8,7 @@ train_pipeline = [
             dict(type='LoadImageFromFile'),
             dict(type='LoadAnnotations', with_bbox=True),
             dict(type='ResizeR', img_scale=(342, 342), keep_ratio=True),
-            dict(type='RandomFlipR', flip_ratio=0.0),
+            dict(type='RandomFlipR', flip_ratio=0.5),
         ],
         pad_val=114),
     dict(type='ResizeR', img_scale=(684, 684), ratio_range=(0.75, 1.5),

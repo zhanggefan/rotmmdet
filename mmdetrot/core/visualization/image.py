@@ -87,9 +87,9 @@ def imshow_det_rbboxes(img,
     if labels.shape[0] > 0:
         if mask_color is None:
             # random color
-            np.random.seed(42)
+            rng = np.random.default_rng(42)
             mask_colors = [
-                np.random.randint(0, 256, (1, 3), dtype=np.uint8)
+                rng.integers(0, 256, (1, 3), dtype=np.uint8)
                 for _ in range(max(labels) + 1)
             ]
         else:
@@ -120,7 +120,6 @@ def imshow_det_rbboxes(img,
     polygons = []
     color = []
     for i, (bbox, label) in enumerate(zip(bboxes, labels)):
-        bbox_int = bbox.astype(np.int32)
         poly = rbbox_4pts(bbox)
         polygons.append(Polygon(poly))
         color.append(bbox_color)
@@ -128,9 +127,10 @@ def imshow_det_rbboxes(img,
             label] if class_names is not None else f'class {label}'
         if len(bbox) > 5:
             label_text += f'|{bbox[-1]:.02f}'
+        text_anchor = poly.argmax(axis=-2)[0]
         ax.text(
-            bbox_int[0],
-            bbox_int[1],
+            poly[text_anchor, 0],
+            poly[text_anchor, 1],
             f'{label_text}',
             bbox={
                 'facecolor': 'black',
