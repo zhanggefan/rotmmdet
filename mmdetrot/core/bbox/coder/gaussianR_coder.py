@@ -56,7 +56,7 @@ class GaussianRBBoxCoder(BaseBBoxCoder):
         h2 = (-b + judge) / 2
         w2 = (-b - judge) / 2
 
-        r = torch.atan2(w2 - xy_var[:, 1], xy_covar)
+        r = torch.atan2(w2 - xy_var[:, 0], xy_covar)
         r[xy_covar == 0] = 0
 
         h = 2 * h2.clamp(min=1e-7, max=1e7).sqrt()
