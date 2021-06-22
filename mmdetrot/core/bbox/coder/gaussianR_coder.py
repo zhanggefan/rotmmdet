@@ -49,13 +49,20 @@ class GaussianRBBoxCoder(BaseBBoxCoder):
         xy_stddev = rep[:, 2:4]
         xy_covar = rep[:, 4] * xy_stddev.prod(dim=-1)
         xy_var = xy_stddev.square()
-        Sigma = torch.stack(
-            (xy_var[:, 0], xy_covar, xy_covar, xy_var[:, 1]), dim=-1)
-        Sigma = Sigma.reshape(-1, 2, 2)
-        eigval, eigmat = torch.symeig(Sigma, eigenvectors=True)
-        wh = 2 * (eigval.clamp(min=1e-7, max=1e7).sqrt())
-        r = torch.atan2(eigmat[:, 0, 0], eigmat[:, 1, 0])
-        decoded_bboxes = torch.cat((xy, wh, r[:, None]), dim=-1)
+
+        b = - xy_var.sum(dim=-1)
+        judge = ((xy_var[:, 0] - xy_var[:,
+                                 1]).square() + 4 * xy_covar.square()).sqrt()
+        h2 = (-b + judge) / 2
+        w2 = (-b - judge) / 2
+
+        r = torch.atan2(w2 - xy_var[:, 1], xy_covar)
+        r[xy_covar == 0] = 0
+
+        h = 2 * h2.clamp(min=1e-7, max=1e7).sqrt()
+        w = 2 * w2.clamp(min=1e-7, max=1e7).sqrt()
+
+        decoded_bboxes = torch.cat((xy, torch.stack((w, h, r), dim=-1)), dim=-1)
         decoded_bboxes = decoded_bboxes.reshape(rep_shape[:-1] + (5,))
         return decoded_bboxes
 

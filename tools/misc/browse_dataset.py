@@ -6,7 +6,7 @@ import mmcv
 from mmcv import Config, DictAction
 
 from mmdet.core.utils import mask2ndarray
-from mmdetrot.core.visualization import imshow_det_rbboxes
+from mmdetrot.core.visualization import imshowR_det_bboxes
 from mmdet.datasets.builder import build_dataset
 
 
@@ -77,17 +77,11 @@ def main():
         if gt_masks is not None:
             gt_masks = mask2ndarray(gt_masks)
 
-        imshow_det_rbboxes(
-            item['img'],
-            item['gt_bboxes'],
-            item['gt_labels'],
-            gt_masks,
-            class_names=dataset.CLASSES,
-            show=not args.not_show,
-            wait_time=args.show_interval,
-            out_file=filename,
-            bbox_color=(255, 102, 61),
-            text_color=(255, 102, 61))
+        imshowR_det_bboxes(item['img'], item['gt_bboxes'], item['gt_labels'],
+                           gt_masks, class_names=dataset.CLASSES,
+                           bbox_color=(255, 102, 61), text_color=(255, 102, 61),
+                           show=not args.not_show, wait_time=args.show_interval,
+                           out_file=filename)
 
         progress_bar.update()
 

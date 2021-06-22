@@ -1,5 +1,5 @@
 model = dict(
-    type='SingleStageDetector',
+    type='SingleStageDetectorR',
     backbone=dict(
         type='DarknetCSP',
         scale='v4m5p',

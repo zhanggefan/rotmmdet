@@ -1,1 +1,1 @@
-from .image import imshow_det_rbboxes
+from .image import imshowR_det_bboxes

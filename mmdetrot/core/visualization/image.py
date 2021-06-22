@@ -21,7 +21,7 @@ def rbbox_4pts(xywhr):
     return np.stack((pts1, pts2, pts3, pts4), axis=-2)
 
 
-def imshow_det_rbboxes(img,
+def imshowR_det_bboxes(img,
                        bboxes,
                        labels,
                        segms=None,
@@ -70,12 +70,12 @@ def imshow_det_rbboxes(img,
         f' labels ndim should be 1, but its ndim is {labels.ndim}.'
     assert bboxes.shape[0] == labels.shape[0], \
         'bboxes.shape[0] and labels.shape[0] should have the same length.'
-    assert bboxes.shape[1] == 4 or bboxes.shape[1] == 5, \
+    assert bboxes.shape[1] == 5 or bboxes.shape[1] == 6, \
         f' bboxes.shape[1] should be 4 or 5, but its {bboxes.shape[1]}.'
     img = mmcv.imread(img).astype(np.uint8)
 
     if score_thr > 0:
-        assert bboxes.shape[1] == 5
+        assert bboxes.shape[1] == 6
         scores = bboxes[:, -1]
         inds = scores > score_thr
         bboxes = bboxes[inds, :]
