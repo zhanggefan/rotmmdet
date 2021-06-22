@@ -20,7 +20,10 @@ model = dict(
         class_agnostic=True,
         num_classes=1,
         in_channels=[192, 384, 768],
-        act_cfg=dict(type='Swish')),
+        act_cfg=dict(type='Swish'),
+        loss_bbox=dict(type='GDLoss', loss_type='gwd',
+                       loss_weight=3.2)
+    ),
     train_cfg=dict(num_obj_per_image=2.8),
     test_cfg=dict(
         min_bbox_size=0,
