@@ -16,7 +16,7 @@ def xy_wh_r_2_xy_sigma(xywhr):
     R = torch.stack((cos_r, -sin_r, sin_r, cos_r), dim=-1).reshape(-1, 2, 2)
     S = 0.5 * torch.diag_embed(wh)
 
-    sigma = R.matmul(S.square()).matmul(R.permute(0, 2, 1)).reshape(
+    sigma = R.bmm(S.square()).bmm(R.permute(0, 2, 1)).reshape(
         _shape[:-1] + (2, 2))
 
     return xy, sigma
@@ -93,7 +93,7 @@ def gwd_loss(pred, target, fun='log1p', tau=1.0, alpha=1.0, normalize=True):
     whr_distance = whr_distance + Sigma_t.diagonal(dim1=-2, dim2=-1).sum(
         dim=-1)
 
-    _t_tr = (Sigma_p.matmul(Sigma_t)).diagonal(dim1=-2, dim2=-1).sum(dim=-1)
+    _t_tr = (Sigma_p.bmm(Sigma_t)).diagonal(dim1=-2, dim2=-1).sum(dim=-1)
     _t_det_sqrt = (Sigma_p.det() * Sigma_t.det()).clamp(0).sqrt()
     whr_distance = whr_distance + (-2) * (
         (_t_tr + 2 * _t_det_sqrt).clamp(0).sqrt())
@@ -126,10 +126,10 @@ def kld_loss(pred, target, fun='log1p', tau=1.0, alpha=1.0, sqrt=True):
     Sigma_p_inv = Sigma_p_inv / Sigma_p.det().unsqueeze(-1).unsqueeze(-1)
 
     dxy = (xy_p - xy_t).unsqueeze(-1)
-    xy_distance = 0.5 * dxy.permute(0, 2, 1).matmul(Sigma_p_inv).matmul(
+    xy_distance = 0.5 * dxy.permute(0, 2, 1).bmm(Sigma_p_inv).bmm(
         dxy).view(-1)
 
-    whr_distance = 0.5 * Sigma_p_inv.matmul(
+    whr_distance = 0.5 * Sigma_p_inv.bmm(
         Sigma_t).diagonal(dim1=-2, dim2=-1).sum(dim=-1)
 
     Sigma_p_det_log = Sigma_p.det().log()

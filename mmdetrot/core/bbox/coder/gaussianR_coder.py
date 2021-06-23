@@ -34,7 +34,7 @@ class GaussianRBBoxCoder(BaseBBoxCoder):
         R = R.reshape(-1, 2, 2)
         S = 0.5 * torch.diag_embed(wh)
 
-        Sigma = R.matmul(S.square()).matmul(R.permute(0, 2, 1))
+        Sigma = R.bmm(S.square()).bmm(R.permute(0, 2, 1))
         xy_dev = Sigma.diagonal(dim1=-2, dim2=-1).clamp(0).sqrt()
         xy_r = Sigma[..., 0, 1] / xy_dev.prod(dim=-1)
         rep = torch.cat((xy, xy_dev, xy_r.unsqueeze(-1)), dim=-1).reshape(
