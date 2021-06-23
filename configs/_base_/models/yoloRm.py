@@ -28,7 +28,7 @@ model = dict(
     test_cfg=dict(
         min_bbox_size=0,
         nms_pre=-1,
-        score_thr=0.001,
+        score_thr=0.5,
         nms=dict(type='nms_rotated', iou_threshold=0.3),
         max_per_img=300),
 )

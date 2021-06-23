@@ -34,9 +34,9 @@ class GaussianRBBoxCoder(BaseBBoxCoder):
         R = R.reshape(-1, 2, 2)
         S = 0.5 * torch.diag_embed(wh)
 
-        Sigma = R.matmul(S.square()).matmul(R.permute(0, 2, 1)).reshape(-1, 4)
-        xy_dev = Sigma[..., [0, 3]].sqrt()
-        xy_r = Sigma[..., 1] / xy_dev.prod(dim=-1)
+        Sigma = R.matmul(S.square()).matmul(R.permute(0, 2, 1))
+        xy_dev = Sigma.diagonal(dim1=-2, dim2=-1).clamp(0).sqrt()
+        xy_r = Sigma[..., 0, 1] / xy_dev.prod(dim=-1)
         rep = torch.cat((xy, xy_dev, xy_r.unsqueeze(-1)), dim=-1).reshape(
             _shape[:-1] + (5,))
         return rep
@@ -62,7 +62,8 @@ class GaussianRBBoxCoder(BaseBBoxCoder):
         h = 2 * h2.clamp(min=1e-7, max=1e7).sqrt()
         w = 2 * w2.clamp(min=1e-7, max=1e7).sqrt()
 
-        decoded_bboxes = torch.cat((xy, torch.stack((w, h, r), dim=-1)), dim=-1)
+        decoded_bboxes = torch.cat((xy, torch.stack((w, h, r), dim=-1)),
+                                   dim=-1)
         decoded_bboxes = decoded_bboxes.reshape(rep_shape[:-1] + (5,))
         return decoded_bboxes
 

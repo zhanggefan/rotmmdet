@@ -1,5 +1,5 @@
-from .mean_ap_flexible import eval_map_flexible
+from .mean_apR_flexible import eval_mapR_flexible
 
 __all__ = [
-    'eval_map_flexible'
+    'eval_mapR_flexible'
 ]

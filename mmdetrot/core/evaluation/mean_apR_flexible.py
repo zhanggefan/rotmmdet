@@ -2,30 +2,31 @@ from collections import OrderedDict
 from os import cpu_count
 
 import numpy as np
+import torch
 from mmcv.utils import Registry, build_from_cfg
 from mmcv.utils.progressbar import track_iter_progress, track_parallel_progress
 from mmdet.core.evaluation.mean_ap import average_precision
-
-from ...ops.eval_utils.iou import iou_coco
+from mmcv.ops import box_iou_rotated
 from ...ops.eval_utils.match import match_coco
+from terminaltables import AsciiTable
+from mmcv.utils import print_log
 
-EVAL_BREAKDOWN = Registry('Evaluation Breakdown')
+EVALR_BREAKDOWN = Registry('Evaluation Breakdown')
 
-EVAL_IOU_CALCULATOR = Registry('Evaluation IOU calculator')
+EVALR_IOU_CALCULATOR = Registry('Evaluation IOU calculator')
 
-EVAL_MATCHER = Registry('Evaluation Matcher')
+EVALR_MATCHER = Registry('Evaluation Matcher')
 
 
-@EVAL_IOU_CALCULATOR.register_module()
-class IOU2DCoCo:
+@EVALR_IOU_CALCULATOR.register_module()
+class IOUR:
 
     def __call__(self, det_bboxes, gt_bboxes, gt_iscrowd=None):
-        if gt_iscrowd is None:
-            gt_iscrowd = gt_bboxes.new_zeros(gt_bboxes.shape[0], dtype=np.bool)
-        return iou_coco(det_bboxes, gt_bboxes, gt_iscrowd)
+        return box_iou_rotated(torch.from_numpy(det_bboxes),
+                               torch.from_numpy(gt_bboxes)).numpy()
 
 
-@EVAL_MATCHER.register_module()
+@EVALR_MATCHER.register_module()
 class MatcherCoCo:
 
     def __call__(self, ious, iou_thrs, gt_isignore=None, gt_iscrowd=None):
@@ -66,7 +67,7 @@ class NoBreakdown:
             return []
 
 
-@EVAL_BREAKDOWN.register_module()
+@EVALR_BREAKDOWN.register_module()
 class ScaleBreakdown(NoBreakdown):
 
     def __init__(self, scale_ranges, classes, apply_to=None, *args, **kwargs):
@@ -85,7 +86,7 @@ class ScaleBreakdown(NoBreakdown):
         if attrs is not None and 'area' in attrs:
             area = attrs['area']
         else:
-            wh = boxes[:, 2:] - boxes[:, :2]
+            wh = boxes[:, 2:4]
             area = wh[:, 0] * wh[:, 1]
         area_flags = np.zeros((num_ranges, num_boxes), dtype=np.bool)
         for dist_idx, (min_area, max_area) in enumerate(self.area_ranges):
@@ -104,12 +105,12 @@ class FlexibleStatisticsEval(object):
         self.breakdown = [NoBreakdown(classes)]
         self.breakdown += [
             build_from_cfg(
-                bkd, EVAL_BREAKDOWN, default_args=dict(classes=classes))
+                bkd, EVALR_BREAKDOWN, default_args=dict(classes=classes))
             for bkd in breakdown
         ]
         self.iou_calculator = build_from_cfg(iou_calculator,
-                                             EVAL_IOU_CALCULATOR)
-        self.matcher = build_from_cfg(matcher, EVAL_MATCHER)
+                                             EVALR_IOU_CALCULATOR)
+        self.matcher = build_from_cfg(matcher, EVALR_MATCHER)
         self.nproc = nproc
 
     def statistics_single(self, input):
@@ -194,8 +195,8 @@ class FlexibleStatisticsEval(object):
                     cls_tp[matched_gt_idx > -1] = True
 
                     _msk_fp = (
-                        cls_det_bkd[bkd_idx:bkd_idx + 1] &
-                        (matched_gt_idx == -1))
+                            cls_det_bkd[bkd_idx:bkd_idx + 1] &
+                            (matched_gt_idx == -1))
                     _msk_tp = ((cls_gt_bkd_msk[matched_gt_idx]) &
                                (matched_gt_idx > -1))
                     _msk_fptp = (_msk_fp | _msk_tp)
@@ -271,22 +272,26 @@ class FlexibleStatisticsEval(object):
             for k, v in eval_result_list:
                 if cond(k) and v['num_gt'] > 0:
                     cond_met_map.append(v['mAP'])
-            cond_met_map = np.mean(cond_met_map)
+            if len(cond_met_map) == 0:
+                cond_met_map = np.nan
+            else:
+                cond_met_map = np.mean(cond_met_map)
             report_dict[name] = cond_met_map
         return report_dict
 
 
-def eval_map_flexible(det_results,
-                      annotations,
-                      iou_thrs=[0.5],
-                      breakdown=[],
-                      iou_calculator=dict(type='IOU2DCoCo'),
-                      matcher=dict(type='MatcherCoCo'),
-                      classes=None,
-                      logger=None,
-                      report_config=[('map', lambda x: x['breakdown'] == 'All')
-                                     ],
-                      nproc=None):
+def eval_mapR_flexible(det_results,
+                       annotations,
+                       iou_thrs=[0.5],
+                       breakdown=[],
+                       iou_calculator=dict(type='IOUR'),
+                       matcher=dict(type='MatcherCoCo'),
+                       classes=None,
+                       logger=None,
+                       report_config=[
+                           ('map', lambda x: x['breakdown'] == 'All')
+                       ],
+                       nproc=None):
     assert len(det_results) == len(annotations)
 
     if nproc is None:
@@ -298,5 +303,16 @@ def eval_map_flexible(det_results,
                                  matcher, nproc)
 
     eval_result_list = fse.statistics_eval(det_results, annotations)
+
+    table_data = [
+        ['Class', 'Breakdown', 'IoU', 'Dets', 'GTs', 'Recall', 'mAP']]
+    for k, v in eval_result_list:
+        table_data.append(
+            [k['class_name'], k['breakdown'], f'{k["iou_threshold"]:.2f}',
+             v['num_det'], v['num_gt'], f'{v["recall"]:.5f}',
+             f'{v["mAP"]:.5f}'])
+    table = AsciiTable(table_data)
+    print_log('\n' + table.table, logger=logger)
+
     report = fse.report(eval_result_list, report_config)
     return report
