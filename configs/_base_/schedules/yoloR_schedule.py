@@ -14,8 +14,8 @@ optimizer_config = dict(
     nominal_batch_size=nominal_batch_size,
     grad_clip=dict(max_norm=35, norm_type=2),
     loss_scale=dict(
-        init_scale=2 ** 16, mode='dynamic', scale_factor=2.,
-        scale_window=1000))
+        init_scale=2. ** 16,
+        growth_interval=1000))
 
 # learning policy
 lr_config = dict(
@@ -45,7 +45,7 @@ custom_hooks = [
 
 runner = dict(type='EpochBasedRunner', max_epochs=300)
 
-evaluation = dict(interval=1, metric='bbox')
+evaluation = dict(interval=1, metric='cowa')
 
 checkpoint_config = dict(interval=5)
 
