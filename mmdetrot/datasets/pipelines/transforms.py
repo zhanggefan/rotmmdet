@@ -94,10 +94,10 @@ class ResizeR(Resize):
     def _resize_bboxes(self, results):
         """Resize bounding boxes with ``results['scale_factor']``."""
         for key in results.get('bbox_fields', []):
-            assert (results['scale_factor'].max() == results[
-                'scale_factor'].min()).all()
+            s = results['scale_factor']
+            assert (s.max() - s.min()) / s.mean() < 0.05, s
             rbboxes = results[key].copy()
-            rbboxes[..., :4] *= results['scale_factor']
+            rbboxes[..., :4] *= np.array([s[0], s[1], s.mean(), s.mean()])
             results[key] = rbboxes
 
 
