@@ -132,60 +132,61 @@ class YOLOGaussianRAnchorGenerator(YOLOAnchorGenerator):
 
             xy_grid = gt_xy[gt_ind] / strides  # grid xy
             xy_grid_inv = feat_size - xy_grid  # inverse just used for fast calculation of neighbor cell validity
+            xy_ok = ((xy_grid < feat_size) & (xy_grid > 0.))
+            yx_ok = xy_ok[..., [1, 0]]
+            this_ok = xy_ok.all(dim=-1)
+            x_left_ok, y_up_ok = (
+                        (xy_grid % 1. < 0.5) & (xy_grid > 1.) & yx_ok).T
+            x_right_ok, y_down_ok = (
+                        (xy_grid_inv % 1. < 0.5) & (xy_grid_inv > 1.) & yx_ok).T
             if neighbor == 0:
-                pred_x, pred_y = xy_grid.long().T
-                anchor_ind = (
-                                     pred_y * feat_w + pred_x) * num_base_anchors + base_anchor_ind
+                neighbor_ok = torch.stack((this_ok,))
+            elif neighbor == 1:
+                neighbor_ok = torch.stack((this_ok,
+                                           x_left_ok,
+                                           y_up_ok,
+                                           x_right_ok,
+                                           y_down_ok))
+                if neighbor_ok.numel() > 0:
+                    four_direction_distance = torch.cat(
+                        (xy_grid, xy_grid_inv), dim=-1) % 1.
+                    direction_mask = (
+                            four_direction_distance == four_direction_distance.min(
+                        dim=-1).values[:, None])
+                    neighbor_ok[1:] = neighbor_ok[1:] & direction_mask.T
+            elif neighbor == 2:
+                neighbor_ok = torch.stack((this_ok,
+                                           x_left_ok,
+                                           y_up_ok,
+                                           x_right_ok,
+                                           y_down_ok))
+            elif neighbor == 3:
+                xy_upleft_ok = x_left_ok & y_up_ok
+                xy_upright_ok = x_right_ok & y_up_ok
+                xy_downright_ok = x_right_ok & y_down_ok
+                xy_downleft_ok = x_left_ok & y_down_ok
+                neighbor_ok = torch.stack((this_ok,
+                                           x_left_ok,
+                                           y_up_ok,
+                                           x_right_ok,
+                                           y_down_ok,
+                                           xy_upleft_ok,
+                                           xy_upright_ok,
+                                           xy_downright_ok,
+                                           xy_downleft_ok))
             else:
-                x_left_ok, y_up_ok = ((xy_grid % 1. < 0.5) & (xy_grid > 1.)).T
-                x_right_ok, y_down_ok = (
-                        (xy_grid_inv % 1. < 0.5) & (xy_grid_inv > 1.)).T
-                if neighbor == 1:
-                    neighbor_ok = torch.stack((torch.ones_like(x_left_ok),
-                                               x_left_ok,
-                                               y_up_ok,
-                                               x_right_ok,
-                                               y_down_ok))
-                    if neighbor_ok.numel() > 0:
-                        four_direction_distance = torch.cat(
-                            (xy_grid, xy_grid_inv), dim=-1) % 1.
-                        direction_mask = (
-                                four_direction_distance == four_direction_distance.min(
-                            dim=-1).values[:, None])
-                        neighbor_ok[1:] = neighbor_ok[1:] & direction_mask.T
-                elif neighbor == 2:
-                    neighbor_ok = torch.stack((torch.ones_like(x_left_ok),
-                                               x_left_ok,
-                                               y_up_ok,
-                                               x_right_ok,
-                                               y_down_ok))
-                elif neighbor == 3:
-                    xy_upleft_ok = x_left_ok & y_up_ok
-                    xy_upright_ok = x_right_ok & y_up_ok
-                    xy_downright_ok = x_right_ok & y_down_ok
-                    xy_downleft_ok = x_left_ok & y_down_ok
-                    neighbor_ok = torch.stack((torch.ones_like(x_left_ok),
-                                               x_left_ok,
-                                               y_up_ok,
-                                               x_right_ok,
-                                               y_down_ok,
-                                               xy_upleft_ok,
-                                               xy_upright_ok,
-                                               xy_downright_ok,
-                                               xy_downleft_ok))
-                else:
-                    raise NotImplementedError
-                num_offset = neighbor_ok.shape[0]
-                gt_ind = gt_ind.repeat((num_offset, 1))[neighbor_ok]
-                base_anchor_ind = base_anchor_ind.repeat((num_offset, 1))[
+                raise NotImplementedError
+            num_offset = neighbor_ok.shape[0]
+            gt_ind = gt_ind.repeat((num_offset, 1))[neighbor_ok]
+            base_anchor_ind = base_anchor_ind.repeat((num_offset, 1))[
+                neighbor_ok]
+            xy_grid_all = \
+                (xy_grid[None, :, :] + neighbor_offset[:num_offset, None,
+                                       :])[
                     neighbor_ok]
-                xy_grid_all = \
-                    (xy_grid[None, :, :] + neighbor_offset[:num_offset, None,
-                                           :])[
-                        neighbor_ok]
-                pred_x, pred_y = xy_grid_all.long().T
-                anchor_ind = (
-                                     pred_y * feat_w + pred_x) * num_base_anchors + base_anchor_ind
+            pred_x, pred_y = xy_grid_all.long().T
+            anchor_ind = (
+                                 pred_y * feat_w + pred_x) * num_base_anchors + base_anchor_ind
 
             indices.append((img_id[gt_ind], anchor_ind, gt_ind))
 
