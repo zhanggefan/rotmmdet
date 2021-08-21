@@ -1,8 +1,8 @@
-from mmdet.models.dense_heads import YOLOCSPHead
+from .yolocsp_head import YOLOCSPHead
 import torch
 from mmcv.cnn import normal_init
 import math
-from ..builder import HEADS
+from mmdet.models.builder import HEADS
 from mmdet.models.losses import reduce_loss
 from ...core.post_processing import multiclass_nmsR
 

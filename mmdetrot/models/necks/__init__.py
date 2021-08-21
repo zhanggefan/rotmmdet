@@ -1,3 +1,3 @@
-from mmdet.models.necks.fpn import FPN
+from .yolo_neck_csp import YOLOV4Neck, YOLOV5Neck
 
-__all__ = ['FPN']
+__all__ = ['YOLOV4Neck', 'YOLOV5Neck']

@@ -136,9 +136,9 @@ class YOLOGaussianRAnchorGenerator(YOLOAnchorGenerator):
             yx_ok = xy_ok[..., [1, 0]]
             this_ok = xy_ok.all(dim=-1)
             x_left_ok, y_up_ok = (
-                        (xy_grid % 1. < 0.5) & (xy_grid > 1.) & yx_ok).T
+                    (xy_grid % 1. < 0.5) & (xy_grid > 1.) & yx_ok).T
             x_right_ok, y_down_ok = (
-                        (xy_grid_inv % 1. < 0.5) & (xy_grid_inv > 1.) & yx_ok).T
+                    (xy_grid_inv % 1. < 0.5) & (xy_grid_inv > 1.) & yx_ok).T
             if neighbor == 0:
                 neighbor_ok = torch.stack((this_ok,))
             elif neighbor == 1:
@@ -217,6 +217,30 @@ class YOLOGaussianRAnchorGenerator(YOLOAnchorGenerator):
         feat_h, feat_w = featmap_size
         shift_x = torch.arange(0, feat_w, device=device) * stride[0]
         shift_y = torch.arange(0, feat_h, device=device) * stride[1]
+
+        shift_xx, shift_yy = self._meshgrid(shift_x, shift_y)
+        shifts = torch.stack(
+            [shift_xx, shift_yy] + [torch.zeros_like(shift_xx) for _ in
+                                    range(3)], dim=-1)
+        shifts = shifts.type_as(base_anchors)
+        # first feat_w elements correspond to the first row of shifts
+        # add A anchors (1, A, 5) to K shifts (K, 1, 5) to get
+        # shifted anchors (K, A, 5), reshape to (K*A, 5)
+
+        all_anchors = base_anchors[None, :, :] + shifts[:, None, :]
+        all_anchors = all_anchors.view(-1, 5)
+        # first A rows correspond to A anchors of (0, 0) in feature map,
+        # then (0, 1), (0, 2), ...
+        return all_anchors
+
+    def single_level_grid_priors(self, featmap_size, level_idx, device='cuda'):
+        base_anchors = self.base_anchors[level_idx].to(device)
+        feat_h, feat_w = featmap_size
+        stride_w, stride_h = self.strides[level_idx]
+
+        feat_h, feat_w = featmap_size
+        shift_x = torch.arange(0, feat_w, device=device) * stride_w
+        shift_y = torch.arange(0, feat_h, device=device) * stride_h
 
         shift_xx, shift_yy = self._meshgrid(shift_x, shift_y)
         shifts = torch.stack(
