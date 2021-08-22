@@ -7,4 +7,4 @@ data = dict(
     samples_per_gpu=20,
     workers_per_gpu=4)
 
-model = dict(train_cfg=dict(num_obj_per_image=2.4))
+model = dict(train_cfg=dict(num_obj_per_image=2.2))
