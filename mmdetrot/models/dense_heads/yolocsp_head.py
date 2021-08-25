@@ -9,7 +9,7 @@ from mmcv.cnn import normal_init
 from mmcv.runner import force_fp32
 from mmcv.runner.fp16_utils import auto_fp16
 
-from mmdet.core import (build_anchor_generator, build_assigner,
+from mmdet.core import (build_prior_generator, build_assigner,
                         build_bbox_coder, build_sampler, multi_apply,
                         multiclass_nms)
 from mmdet.models.builder import HEADS, LOSSES, build_loss
@@ -124,7 +124,7 @@ class YOLOCSPHead(BaseDenseHead, BBoxTestMixin):
         self.act_cfg = act_cfg
 
         self.bbox_coder = build_bbox_coder(bbox_coder)
-        self.anchor_generator = build_anchor_generator(anchor_generator)
+        self.anchor_generator = build_prior_generator(anchor_generator)
 
         self.class_agnostic = class_agnostic
 
@@ -229,7 +229,7 @@ class YOLOCSPHead(BaseDenseHead, BBoxTestMixin):
         num_image = len(img_metas)
 
         featmap_sizes = [pred_maps[i].shape[-2:] for i in range(num_levels)]
-        mlvl_anchors = self.anchor_generator.grid_anchors(
+        mlvl_anchors = self.anchor_generator.grid_priors(
             featmap_sizes, pred_maps[0].device)
 
         mlvl_bbox_pred = []

@@ -152,7 +152,7 @@ class YOLORHead(YOLOCSPHead):
         num_image = len(img_metas)
 
         featmap_sizes = [pred_maps[i].shape[-2:] for i in range(num_levels)]
-        mlvl_anchors = self.anchor_generator.grid_anchors(
+        mlvl_anchors = self.anchor_generator.grid_priors(
             featmap_sizes, pred_maps[0].device)
 
         mlvl_bbox_pred = []
@@ -261,7 +261,7 @@ class YOLORHead(YOLOCSPHead):
             return torch.zeros((0, 6)), torch.zeros((0,))
 
         if rescale:
-            bbox_pred /= bbox_pred.new_tensor(scale_factor)
+            bbox_pred[..., :4] /= bbox_pred.new_tensor(scale_factor)
 
         if with_nms:
             # In mmdet 2.x, the class_id for background is num_classes.

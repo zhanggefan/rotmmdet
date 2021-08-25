@@ -235,7 +235,6 @@ class YOLOGaussianRAnchorGenerator(YOLOAnchorGenerator):
 
     def single_level_grid_priors(self, featmap_size, level_idx, device='cuda'):
         base_anchors = self.base_anchors[level_idx].to(device)
-        feat_h, feat_w = featmap_size
         stride_w, stride_h = self.strides[level_idx]
 
         feat_h, feat_w = featmap_size
