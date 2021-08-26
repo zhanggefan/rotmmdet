@@ -162,6 +162,12 @@ if __name__ == '__main__':
             'optional': parse_requirements('requirements/optional.txt'),
         },
         ext_modules=[
+            make_cuda_ext(
+                name='geo_utils',
+                module='mmdetrot.ops.geo',
+                sources=[
+                    'rbox_geo.cpp'
+                ]),
             *cythonize([
                 Extension(
                     'mmdetrot.ops.eval_utils.match',
