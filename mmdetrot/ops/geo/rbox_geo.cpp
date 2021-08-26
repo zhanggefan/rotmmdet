@@ -73,10 +73,13 @@ rboxes_truncate(const py::array_t<double, py::array::c_style> &rboxes_,
 
   int N = rboxes.shape(0);
 
-  py::array_t<double, py::array::c_style> truncated_ = rboxes_;
+  auto truncated_ = py::array_t<double, py::array::c_style>({N, 5});
   auto truncated = truncated_.mutable_unchecked<2>();
 
   for (int i = 0; i < N; i++) {
+    for (int j = 0; j < 5; j++) {
+      truncated(i, j) = rboxes(i, j);
+    }
     geo::rotated_boxes_truncate((double *)truncated.data(i, 0), rlimit.data(0));
   }
   return truncated_;

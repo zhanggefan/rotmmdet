@@ -1,6 +1,8 @@
 from mmdet.datasets.builder import PIPELINES
-from mmdet.datasets.pipelines.transforms import (Resize, RandomFlip, RandomCrop)
+from mmdet.datasets.pipelines.transforms import (Resize, RandomFlip,
+                                                 RandomCrop)
 from mmdet.datasets.pipelines.compose import Compose as PipelineCompose
+from ...ops.geo.geo_utils import rboxes_truncate
 import random
 import cv2
 import numpy as np
@@ -251,6 +253,9 @@ class RandomFlipR(RandomFlip):
 @PIPELINES.register_module()
 class RandomCropR(RandomCrop):
     def __init__(self, **kwargs):
+        self.min_rbbox_ratio = kwargs.pop('min_rbbox_ratio', 0.2)
+        self.min_rbbox_area = kwargs.pop('min_box_area', 64)
+        self.min_box_expand = kwargs.pop('min_box_expand', 20)
         super(RandomCropR, self).__init__(**kwargs)
         self.rbbox2label = {
             'gt_rbboxes': 'gt_labels',
@@ -293,10 +298,19 @@ class RandomCropR(RandomCrop):
             rbbox_offset = np.array([offset_w, offset_h, 0, 0, 0],
                                     dtype=np.float32)
             rbboxes = results[key] - rbbox_offset
-            valid_inds = (rbboxes[:, 0] >= 0) & (
-                    rbboxes[:, 0] <= crop_size[1]) & (
-                                 rbboxes[:, 1] >= 0) & (
-                                 rbboxes[:, 1] <= crop_size[0])
+
+            h, w, _ = img_shape
+            limit = [w / 2, h / 2, w, h, 0]
+            rbboxes_trunc = rboxes_truncate(rbboxes, limit)
+
+            valid_inds = ((rbboxes_trunc[:, 2:4].prod(axis=-1) / (
+                    rbboxes[:, 2:4].prod(
+                        axis=-1) + 1e-7)) > self.min_rbbox_ratio)
+            valid_inds = (valid_inds & (rbboxes_trunc[:, 2:4].prod(
+                axis=-1) >= self.min_rbbox_area))
+            valid_inds = (valid_inds & (rbboxes_trunc[:, 2:4].max(
+                axis=-1) >= self.min_box_expand))
+
             # If the crop does not contain any gt-bbox area and
             # allow_negative_crop is False, skip this image.
             if (key == 'gt_bboxes' and not valid_inds.any()
