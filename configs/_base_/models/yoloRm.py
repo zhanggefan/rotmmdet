@@ -21,7 +21,7 @@ model = dict(
         num_classes=1,
         in_channels=[192, 384, 768],
         act_cfg=dict(type='Swish'),
-        loss_bbox=dict(type='GDLoss', loss_type='gwd',
+        loss_bbox=dict(type='GDLoss', loss_type='gwd', tau=1.0,
                        loss_weight=3.2)
     ),
     train_cfg=dict(num_obj_per_image=2.8),

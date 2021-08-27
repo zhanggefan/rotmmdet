@@ -310,6 +310,8 @@ class RandomCropR(RandomCrop):
                 axis=-1) >= self.min_rbbox_area))
             valid_inds = (valid_inds & (rbboxes_trunc[:, 2:4].max(
                 axis=-1) >= self.min_box_expand))
+            
+            rbboxes = rbboxes_trunc.astype(np.float32)
 
             # If the crop does not contain any gt-bbox area and
             # allow_negative_crop is False, skip this image.
